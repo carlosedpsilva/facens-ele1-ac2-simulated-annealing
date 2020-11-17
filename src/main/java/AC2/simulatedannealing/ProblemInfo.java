@@ -1,4 +1,4 @@
-package AC2;
+package AC2.simulatedannealing;
 
 public class ProblemInfo {
   // From file

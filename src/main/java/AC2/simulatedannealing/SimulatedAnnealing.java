@@ -1,4 +1,4 @@
-package AC2;
+package AC2.simulatedannealing;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -18,17 +18,32 @@ import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
+import AC2.util.Util;
+
 public class SimulatedAnnealing {
 
-    // Executin
+    /**
+     * Configuração
+     */
 
-    private double temperature;
-    private double coolingFactor;
-    private long maxIterations;
-    private long timeLimit;
-    private boolean isLoopExecution;
+    // estrátegia de resfriamento
+    private static double temperature;
+    private static double coolFactor;
+    private static boolean scheduleType;
+    // critérios de parada
+    private static long iterLimit;
+    private static long timeLimit;
+    private static long stopOnSol;
+    // export
+    private static String exportOptTour;
+    private static String exportSolutions;
+    private static String exportXLSX;
+    // other
+    private static boolean isLoopExecution;
 
-    // Build
+    /**
+     * Problem Tour Build
+     */
 
     private static ArrayList<Integer> indexes;
     private static ArrayList<Double> xCoords;
@@ -36,36 +51,20 @@ public class SimulatedAnnealing {
 
     private static ArrayList<City> cities;
 
-    // Export
-    private boolean exportOptTour;
-    private boolean exportSolutions;
-    private boolean exportXLSX;
+    /**
+     * Java Execution Settings
+     */
 
-    // Settings and Other
     public static ProblemInfo problemInfo;
 
     private static XSSFWorkbook wb;
 
     private static Scanner s = new Scanner(System.in);
 
-    public SimulatedAnnealing(double temperature, double coolingFactor, long maxIterations, long timeLimit,
-            boolean exportOptTour, boolean exportSolutions, boolean exportXLSX, boolean isLoopExecution) {
-        this.temperature = temperature;
-        this.coolingFactor = coolingFactor;
-        this.maxIterations = maxIterations;
-        this.timeLimit = timeLimit;
-        this.exportOptTour = exportOptTour;
-        this.exportSolutions = exportSolutions;
-        this.exportXLSX = exportXLSX;
-        this.isLoopExecution = isLoopExecution;
+    public static boolean solve() {
 
         wb = null;
         System.gc();
-
-        solve();
-    }
-
-    public void solve() {
 
         // Registrar date time da execução
         final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yy-MM-dd_HH-mm-ss");
@@ -98,10 +97,10 @@ public class SimulatedAnnealing {
          */
 
         // Preparar arquivo de export de soluções .txt
-        File solutionFolder = new File("export/solutions/");
-        File solutionFile = new File("export/solutions/" + dateNow + "_" + problemInfo.getName() + ".txt");
+        File solutionFolder = new File("files/export/solution/");
+        File solutionFile = new File("files/export/solution/" + dateNow + "_" + problemInfo.getName() + ".txt");
 
-        if (exportSolutions) {
+        if (Boolean.valueOf(exportSolutions)) {
 
             System.out.println("[INFO] Preparando o arquivo de exportação da solução (export/solutions/*.txt)");
 
@@ -125,17 +124,15 @@ public class SimulatedAnnealing {
          * PROCESSAMENTO
          */
 
-        double t;
-        double sol_t;
+        double t = temperature;
+        double sol_t = temperature;
         boolean isUpdate;
         boolean isNewBest;
         StopReason stopReason = StopReason.RESFRIAMENTO_COMPLETO;
 
-        Runtime runtime = Runtime.getRuntime();
-
         System.out.println("[INFO] Processando solução");
 
-        for (t = temperature, sol_t = temperature; t > 0.5; t *= coolingFactor) {
+        do {
             // Gerar solução vizinha
             Tour neighbor = current.duplicate();
 
@@ -164,14 +161,12 @@ public class SimulatedAnnealing {
 
                 isUpdate = true;
                 update++;
-            }
 
-            // Exportar soluções
-            if (exportSolutions) {
-                long time = (System.nanoTime() - startTime) / 1_000_000;
+                // Exportar soluções
+                if (Boolean.valueOf(exportSolutions)) {
+                    long time = (System.nanoTime() - startTime) / 1_000_000;
 
-                // Write in Solution File
-                if (exportSolutions) {
+                    // Write in Solution File
                     try (PrintWriter out = new PrintWriter(new FileWriter(solutionFile, true))) {
                         // Info
                         out.append(String.format("%d %d %d %d %.4f %b %b ", update, iteration, time,
@@ -182,11 +177,13 @@ public class SimulatedAnnealing {
                     } catch (IOException e) {
                         System.out.println("[ERRO] Não foi possível escrever em arquivo de export de soluções [.txt]");
                     }
+
                 }
             }
 
             iteration++;
-            if (maxIterations != 0 && iteration > maxIterations) {
+
+            if (iterLimit != 0 && iteration > iterLimit) {
                 stopReason = StopReason.LIMITE_DE_ITERACOES;
                 break;
             }
@@ -198,7 +195,18 @@ public class SimulatedAnnealing {
                     break;
                 }
             }
-        }
+
+            if (stopOnSol != 0 && best.getDistance() <= stopOnSol) {
+                stopReason = StopReason.SOL_IDEAL_ENCONTRADA;
+                break;
+            }
+
+            if (scheduleType) {
+                t *= coolFactor;
+            } else {
+                t -= coolFactor;
+            }
+        } while (scheduleType ? (t > (1 - coolFactor)) : (t >= 0.0));
 
         /**
          * FIM PROCESSAMENTO
@@ -216,17 +224,26 @@ public class SimulatedAnnealing {
          */
 
         // Exportar Tour
-        if (exportOptTour) {
+        if (exportOptTour.equals("prompt")) {
+            System.out.print("Deseja exportar o Opt Tour atual? (" + best.getDistance() + ")\n> ");
+            String input = s.nextLine();
+            if (input.isEmpty() || input.equalsIgnoreCase("sim") || input.equalsIgnoreCase("s")
+                    || input.equalsIgnoreCase("yes") || input.equalsIgnoreCase("y") || input.equalsIgnoreCase("true")) {
+                exportOptTour = "true";
+            }
+        }
+
+        File optTourFolder = new File("files/export/opttour/");
+        File optTourFile = new File("files/export/opttour/" + dateNow + "_" + problemInfo.getName() + ".opt.tour.txt");
+
+        if (Boolean.valueOf(exportOptTour)) {
 
             System.out.println("[INFO] Criando arquivo de exportação .opt.tour");
 
-            File optTourFolder = new File("export/opttour/");
-            File optTourFile = new File("export/opttour/" + dateNow + "_" + problemInfo.getName() + ".opt.tour.txt");
-
             try {
-                if (!optTourFolder.mkdirs()) {
-                    throw new IOException(
-                            "[ERRO] Não foi possível gerar o arquivo de export do tour (export/opttour/*.opt.tour.txt)");
+
+                if (!optTourFolder.exists()) {
+                    optTourFolder.mkdirs();
                 }
 
                 // Arquivo com nome único
@@ -248,23 +265,31 @@ public class SimulatedAnnealing {
         }
 
         // Exportar log de execução
-        if (exportXLSX) {
+        if (exportXLSX.equals("prompt"))
+
+        {
+            System.out.print("Deseja exportar o Opt Tour atual?\n> ");
+            String input = s.nextLine();
+            if (input.isEmpty() || input.equalsIgnoreCase("sim") || input.equalsIgnoreCase("s")
+                    || input.equalsIgnoreCase("yes") || input.equalsIgnoreCase("y") || input.equalsIgnoreCase("true")) {
+                exportXLSX = "true";
+            }
+        }
+
+        if (Boolean.valueOf(exportXLSX)) {
 
             System.out.println("[INFO] Registrando na planilha o log de execução");
 
             FileOutputStream xlsxLogFileOut = null;
             XSSFSheet mainSheet = null;
 
-            File xlsxFolder = new File("export/xlsx/");
-            File logFile = new File("export/xlsx/execution_log.xlsx");
+            File xlsxFolder = new File("files/export/xlsx/");
+            File logFile = new File("files/export/xlsx/execution_log.xlsx");
 
             try {
                 // Criar pasta se não existir
                 if (!xlsxFolder.exists()) {
-                    if (!xlsxFolder.mkdirs()) {
-                        throw new IOException(
-                                "[ERRO] Não foi possível gerar o arquivo de export da planilha de execução (export/solutions/*.txt)");
-                    }
+                    xlsxFolder.mkdirs();
                 }
 
                 // Criar planilha se não existir
@@ -315,7 +340,7 @@ public class SimulatedAnnealing {
 
                 XSSFCell date_time = logLine.createCell(0);
                 XSSFCell file = logLine.createCell(1);
-                XSSFCell temperature = logLine.createCell(2);
+                XSSFCell temp = logLine.createCell(2);
                 XSSFCell cool_factor = logLine.createCell(3);
                 XSSFCell exec_time = logLine.createCell(4);
                 XSSFCell stop_reason = logLine.createCell(5);
@@ -328,8 +353,8 @@ public class SimulatedAnnealing {
 
                 date_time.setCellValue(dateNow);
                 file.setCellValue(problemInfo.getName());
-                temperature.setCellValue(this.temperature);
-                cool_factor.setCellValue(this.coolingFactor);
+                temp.setCellValue(temperature);
+                cool_factor.setCellValue(coolFactor);
                 exec_time.setCellValue(stopTimeMs);
                 stop_reason.setCellValue(stopReason.name());
                 iterations.setCellValue((iteration - 1));
@@ -352,8 +377,8 @@ public class SimulatedAnnealing {
         // Output terminal
         System.out.println("\n\nDate/Time: " + dateNow);
         System.out.println("File: " + problemInfo.getName());
-        System.out.println("Temperatura: " + this.temperature);
-        System.out.println("Fator de Resfriamento: " + this.coolingFactor);
+        System.out.println("Temperatura: " + temperature);
+        System.out.println("Fator de Resfriamento: " + coolFactor);
         System.out.println("Tempo de execução: " + stopTimeMs + " ms (" + stopTimeSe + " s)");
         System.out.println("Razão de parada: " + stopReason);
         System.out.println("Iterações: " + (iteration - 1));
@@ -363,9 +388,9 @@ public class SimulatedAnnealing {
         System.out.println("Temperatura da melhor solução: " + sol_t + (t < 0.5 ? " (fim)" : ""));
         System.out.println("Temperatura atual: " + t + (t < 0.5 ? " (fim)" : ""));
 
-        System.out.println("\n\n[DEBUG] Total Memory (in bytes): " + runtime.totalMemory());
-        System.out.println("[DEBUG] Free Memory (in bytes): " + runtime.freeMemory());
-        System.out.println("[DEBUG] Max Memory (in bytes): " + runtime.maxMemory());
+        if (best.getDistance() <= 33503) {
+            return true;
+        }
 
         if (!isLoopExecution) {
             System.out.println("\n[Pressione enter para continuar]");
@@ -373,6 +398,51 @@ public class SimulatedAnnealing {
         } else {
             System.out.println("\n");
         }
+
+        if (best.getDistance() > 33500) {
+            solutionFile.delete();
+            optTourFile.delete();
+        }
+        return false;
+    }
+
+    public static void setConfig(ExecutionConfig executionConfig) {
+        // estrategia de resfriamento
+        temperature = executionConfig.getTemperature();
+        scheduleType = executionConfig.getScheduleType() == 1;
+        double auxCoolFac = executionConfig.getCoolFactor();
+        if (scheduleType) {
+            if (auxCoolFac >= 1) {
+                coolFactor = 1 - Math.pow(10, -auxCoolFac);
+            } else {
+                coolFactor = auxCoolFac;
+            }
+        } else {
+            if (auxCoolFac >= 1) {
+                coolFactor = Math.pow(10, -auxCoolFac);
+            } else {
+                coolFactor = auxCoolFac;
+            }
+        }
+
+        // criterios de parada
+        String aux;
+        aux = executionConfig.getIterLimit();
+        iterLimit = aux.equals("disabled") ? 0L : Long.valueOf(aux);
+        aux = executionConfig.getTimelimit();
+        timeLimit = aux.equals("disabled") ? 0L : Long.valueOf(aux);
+        aux = executionConfig.getStopOnSol();
+        stopOnSol = aux.equals("disabled") ? 0L : Long.valueOf(aux);
+        // export
+        exportOptTour = executionConfig.getExpOptTour();
+        exportSolutions = executionConfig.getExpSolution();
+        exportXLSX = executionConfig.getExpXLSXLog();
+        // other
+        isLoopExecution = executionConfig.getExecutions() > 1 ? true : false;
+    }
+
+    public static void setProblemInfo(ProblemInfo problemInfo) {
+        SimulatedAnnealing.problemInfo = problemInfo;
     }
 
     public static void setProblemPlotting(ArrayList<Integer> indexes, ArrayList<Double> xCoords,
@@ -382,141 +452,7 @@ public class SimulatedAnnealing {
         SimulatedAnnealing.yCoords = yCoords;
     }
 
-    public static void setProblemInfo(ProblemInfo info) {
-        SimulatedAnnealing.problemInfo = info;
-    }
-
     public enum StopReason {
-        RESFRIAMENTO_COMPLETO(1), LIMITE_DE_ITERACOES(2), LIMITE_DE_TEMPO(3),;
-
-        private final int id;
-
-        StopReason(int id) {
-            this.id = id;
-        }
-
-        public static StopReason fromId(int reasonId) {
-            for (StopReason reason : values()) {
-                if (reason.getId() == reasonId) {
-                    return reason;
-                }
-            }
-            return RESFRIAMENTO_COMPLETO;
-        }
-
-        public int getId() {
-            return id;
-        }
-    }
-
-    public static class City {
-        private int index;
-        private double x;
-        private double y;
-
-        public City(int index, double x, double y) {
-            this.index = index;
-            this.x = x;
-            this.y = y;
-        }
-
-        public int getIndex() {
-            return index;
-        }
-
-        public double getX() {
-            return x;
-        }
-
-        public double getY() {
-            return y;
-        }
-
-        @Override
-        public String toString() {
-            return "[ " + index + " ]";
-        }
-    }
-
-    public static class Tour {
-        private ArrayList<City> cities;
-        private int distance;
-
-        public Tour(ArrayList<City> cities) {
-            this.cities = new ArrayList<>(cities);
-        }
-
-        public static Tour initAndShuffle(ArrayList<City> cities) {
-            Tour tour = new Tour(cities);
-            tour.shuffle();
-            return tour;
-        }
-
-        public City getCity(int index) {
-            return this.cities.get(index);
-        }
-
-        public void shuffle() {
-            Collections.shuffle(cities);
-        }
-
-        public int getTourLenght() {
-            if (distance != 0)
-                return distance;
-
-            int totalDistance = 0;
-
-            for (int i = 0; i < numberOfCities(); i++) {
-                City start = getCity(i);
-                City end = getCity(i + 1 < numberOfCities() ? i + 1 : 0);
-                totalDistance += Util.distance(start, end);
-            }
-
-            distance = totalDistance;
-            return totalDistance;
-        }
-
-        public Tour duplicate() {
-            return new Tour(new ArrayList<>(cities));
-        }
-
-        public int numberOfCities() {
-            return cities.size();
-        }
-
-        @Override
-        public String toString() {
-            return cities.toString();
-        }
-
-        public ArrayList<Integer> getIndexes() {
-            ArrayList<Integer> indexes = new ArrayList<>();
-            for (City city : cities) {
-                indexes.add(city.getIndex());
-            }
-            return indexes;
-        }
-
-        public ArrayList<City> getCities() {
-            return cities;
-        }
-
-        public int getDistance() {
-            return getTourLenght();
-        }
-    }
-
-    public static class Util {
-        public static double probability(double f1, double f2, double temp) {
-            if (f2 < f1)
-                return 1;
-            return Math.exp((f1 - f2) / temp);
-        }
-
-        public static double distance(City city1, City city2) {
-            double xDist = Math.abs(city1.getX() - city2.getX());
-            double yDist = Math.abs(city1.getY() - city2.getY());
-            return Math.sqrt(xDist * xDist + yDist * yDist);
-        }
+        RESFRIAMENTO_COMPLETO, LIMITE_DE_ITERACOES, LIMITE_DE_TEMPO, SOL_IDEAL_ENCONTRADA;
     }
 }

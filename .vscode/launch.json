@@ -6,24 +6,25 @@
   "configurations": [
     {
       "type": "java",
-      "name": "CodeLens (Launch) - MainCG",
-      "request": "launch",
-      "mainClass": "AC2.MainCG",
-      "projectName": "AC2"
-    },
-    {
-      "type": "java",
       "name": "CodeLens (Launch) - Main",
       "request": "launch",
       "mainClass": "AC2.Main",
+      "projectName": "AC2",
+      "vmArgs": "-Xms4G -Xmx4G -XX:+UseG1GC -XX:MinHeapFreeRatio=15 -XX:MaxHeapFreeRatio=30 --module-path C:/Users/Carlos/.javafx/javafx-sdk-15.0.1/lib --add-modules javafx.controls,javafx.swing,javafx.fxml"
+    },
+    {
+      "type": "java",
+      "name": "CodeLens (Launch) - MainSA",
+      "request": "launch",
+      "mainClass": "AC2.simulatedannealing.MainSA",
       "projectName": "AC2",
       "vmArgs": "-Xms4G -Xmx4G -XX:+UseG1GC -XX:MinHeapFreeRatio=15 -XX:MaxHeapFreeRatio=30"
     },
     {
       "type": "java",
-      "name": "CodeLens (Launch) - ChartGenerator",
+      "name": "CodeLens (Launch) - MainCG",
       "request": "launch",
-      "mainClass": "AC2.ChartGenerator",
+      "mainClass": "AC2.chartgenerator.MainCG",
       "projectName": "AC2",
       "vmArgs": "--module-path C:/Users/Carlos/.javafx/javafx-sdk-15.0.1/lib --add-modules javafx.controls,javafx.swing,javafx.fxml"
     },

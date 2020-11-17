@@ -1,12 +1,12 @@
-package AC2;
+package AC2.util;
 
 import java.io.File;
 import java.io.FilenameFilter;
 
 public class FileSearch {
-  private static File tourFolder = new File(".tour/.");
-  private static File optTourFolder = new File("export/opttour/.");
-  private static File solutionsFolder = new File("export/solutions/.");
+  private static File tourFolder = new File("files/.tour/.");
+  private static File optTourFolder = new File("files/export/opttour/.");
+  private static File solutionFolder = new File("files/export/solution/.");
   private static TspSearchFilter tspFiles = new TspSearchFilter();
   private static TxtSearchFilter txtFiles = new TxtSearchFilter();
 
@@ -19,7 +19,7 @@ public class FileSearch {
   }
 
   public static String[] getArrayOfSolutions() {
-    return solutionsFolder.list(txtFiles);
+    return solutionFolder.list(txtFiles);
   }
 
   public static class TspSearchFilter implements FilenameFilter {
