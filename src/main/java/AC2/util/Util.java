@@ -12,6 +12,6 @@ public class Util {
   public static double distance(City city1, City city2) {
     double xDist = Math.abs(city1.getX() - city2.getX());
     double yDist = Math.abs(city1.getY() - city2.getY());
-    return Math.sqrt(xDist * xDist + yDist * yDist);
+    return Math.round(Math.hypot(xDist, yDist));
   }
 }

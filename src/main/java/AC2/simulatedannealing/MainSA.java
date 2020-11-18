@@ -25,12 +25,12 @@ public class MainSA {
   private static Scanner s = new Scanner(System.in);
 
   public static void main(String[] args) {
-    // Encontra arquivos com a extensão .tsp ou .opt.tour
+    // Encontra arquivos com a extensão .tsp
     String[] tspFileInputs = FileSearch.getArrayOfTsps();
 
     // Cancela execução se não há arquivos tsp para serem lidos
     if (tspFileInputs == null) {
-      System.out.println("[Erro] Não há arquivos .tsp para serem lidos.");
+      System.out.println("\n\n[Erro] Não há arquivos .tsp para serem lidos.");
       return;
     }
 
@@ -101,13 +101,9 @@ public class MainSA {
 
           for (int i = 0; i < executionConfig.getExecutions(); i++) {
 
-            System.out.println("[INFO] Execução " + (i + 1) + ".0 de " + executionConfig.getExecutions());
+            System.out.println("[INFO] Execução " + (i + 1) + " de " + executionConfig.getExecutions());
+            SimulatedAnnealing.solve();
           }
-
-          do {
-            if (SimulatedAnnealing.solve())
-              break;
-          } while (true);
 
           break;
         case "2":

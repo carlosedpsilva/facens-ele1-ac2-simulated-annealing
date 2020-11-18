@@ -4,7 +4,6 @@ import java.util.Scanner;
 
 import AC2.chartgenerator.MainCG;
 import AC2.simulatedannealing.MainSA;
-import AC2.util.MainTR;
 
 public class Main {
   public static Scanner s = new Scanner(System.in);
@@ -15,8 +14,7 @@ public class Main {
       System.out.println("\n\nRECOZIMENTO SIMULADO");
       System.out.println("1) Executar");
       System.out.println("2) Gerar GIF");
-      System.out.println("3) Ler Opt.Tour");
-      System.out.println("4) Sair");
+      System.out.println("3) Sair");
       System.out.print("> ");
       input = s.nextLine();
 
@@ -28,9 +26,6 @@ public class Main {
           MainCG.main(args);
           break;
         case "3":
-          MainTR.main(args);
-          break;
-        case "4":
           System.exit(1);
           break;
         default:

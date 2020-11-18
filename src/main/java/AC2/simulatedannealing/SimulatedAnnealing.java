@@ -61,7 +61,7 @@ public class SimulatedAnnealing {
 
     private static Scanner s = new Scanner(System.in);
 
-    public static boolean solve() {
+    public static void solve() {
 
         wb = null;
         System.gc();
@@ -385,12 +385,8 @@ public class SimulatedAnnealing {
         System.out.println("Atualizações: " + (update - 1));
         System.out.println("Melhor solução: " + best.getDistance());
         System.out.println("Última solução: " + current.getDistance());
-        System.out.println("Temperatura da melhor solução: " + sol_t + (t < 0.5 ? " (fim)" : ""));
+        System.out.println("Temperatura da melhor solução: " + sol_t);
         System.out.println("Temperatura atual: " + t + (t < 0.5 ? " (fim)" : ""));
-
-        if (best.getDistance() <= 33503) {
-            return true;
-        }
 
         if (!isLoopExecution) {
             System.out.println("\n[Pressione enter para continuar]");
@@ -399,11 +395,10 @@ public class SimulatedAnnealing {
             System.out.println("\n");
         }
 
-        if (best.getDistance() > 33500) {
+        if (best.getDistance() > 34000) {
             solutionFile.delete();
             optTourFile.delete();
         }
-        return false;
     }
 
     public static void setConfig(ExecutionConfig executionConfig) {

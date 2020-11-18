@@ -47,7 +47,8 @@ public class MainCG extends Application {
   private static ImageOutputStream output;
 
   private static Scanner s = new Scanner(System.in);
-  private static boolean readingSolution;
+
+  final DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM-dd_HH-mm-ss");
 
   public static void main(String[] args) {
 
@@ -62,10 +63,9 @@ public class MainCG extends Application {
     String input;
 
     do {
-      readingSolution = true;
       System.out.println("\n\nRECOZIMENTO SIMULADO - CHART GENERATOR");
       System.out.println("1) Ler Solução");
-      System.out.println("2) Ler Opt Tour");
+      System.out.println("2) Ler Opt Tour [Não implementado]");
       System.out.print("3) Sair\n> ");
       input = s.nextLine();
 
@@ -134,8 +134,10 @@ public class MainCG extends Application {
             break;
           }
 
-          readingSolution = false;
-          launch(args);
+          System.out.println("\n\n[Erro] Execução cancelada. Recurso não implementado.");
+
+          System.exit(1);
+          // launch(args);
         case "3":
           System.exit(1);
         default:
@@ -172,20 +174,11 @@ public class MainCG extends Application {
 
     // Adicionar gráficos ao layout
     FlowPane root = new FlowPane(Orientation.HORIZONTAL);
-    if (readingSolution) {
-      root.getChildren().addAll(lineChart, scatterChart);
-    } else {
-      root.getChildren().add(lineChart);
-    }
+    root.getChildren().addAll(lineChart, scatterChart);
 
     // Adicionar layout à scene, e a scene à window
-    Scene scene = null;
-    if (readingSolution) {
-      scene = new Scene(root, 1020, 440);
-      scene.getStylesheets().add(getClass().getResource("styles.css").toExternalForm());
-    } else {
-      scene = new Scene(root, 500, 440);
-    }
+    Scene scene = new Scene(root, 1020, 440);
+    scene.getStylesheets().add(getClass().getResource("styles.css").toExternalForm());
 
     // Create folder to export
     File folder = new File(
@@ -216,61 +209,42 @@ public class MainCG extends Application {
 
     long startTime = System.nanoTime();
 
-    XYChart.Series<Number, Number> tourItSeries = null;
-
     int iteration = 1; // for files
-    int bestSolution = 0;
     for (String str : solutionLines) {
-
-      int i = 0;
-      if (iteration > 1)
-        if (iteration % 100 != 0) {
-          iteration++;
-          continue;
-        }
+      XYChart.Series<Number, Number> tourItSeries = new XYChart.Series<>(); // resetar series
 
       // Adicionar valores aos series
-      if (readingSolution) {
-        tourItSeries = new XYChart.Series<>(); // resetar series
+      int i = 0;
+      List<String> values = Arrays.stream(str.split(" ")).collect(Collectors.toList());
+      tourItSeries.setName("Iteração " + values.get(0)); // Iteração
+      int xValue = Integer.valueOf(values.get(1)); // time
+      int yValue = Integer.valueOf(values.get(2)); // solution
+      double temperature = Double.valueOf(values.get(3).replace(",", ".")); // solution
 
-        List<String> values = Arrays.stream(str.split(" ")).collect(Collectors.toList());
-        tourItSeries.setName("Iteração " + values.get(1)); // Iteração
-        int xValue = Integer.valueOf(values.get(2)); // time
-        int yValue = Integer.valueOf(values.get(3)); // solution
-        double temperature = Double.valueOf(values.get(4).replace(",", ".")); // solution
+      if (iteration == 1) { // first best
+        bestSolSeries.setName("Melhor solução: " + yValue);
+        bestSolSeries.getData().add(new XYChart.Data<>(xValue, yValue));
+      }
+      if (Boolean.valueOf(values.get(4))) { // newBest?
+        bestSolSeries.getData().clear();
+        bestSolSeries.setName("Melhor solução: " + yValue);
+        bestSolSeries.getData().add(new XYChart.Data<>(xValue, yValue));
+      }
+      temperatureSeries.setName("Temperatura: " + temperature);
 
-        if (iteration == 1) { // first best
-          bestSolution = yValue;
-          bestSolSeries.setName("Melhor solução: " + bestSolution);
-          bestSolSeries.getData().add(new XYChart.Data<>(xValue, yValue));
-        }
-        if (Boolean.valueOf(values.get(6)) || yValue > bestSolution) { // newBest?
-          bestSolSeries.getData().clear();
-          bestSolution = yValue;
-          bestSolSeries.setName("Melhor solução: " + bestSolution);
-          bestSolSeries.getData().add(new XYChart.Data<>(xValue, yValue));
-        }
-        temperatureSeries.setName("Temperatura: " + temperature);
+      currSolSeries.setName("Solução atual: " + yValue);
+      currSolSeries.getData().add(new XYChart.Data<>(xValue, yValue));
 
-        currSolSeries.setName("Solução atual: " + yValue);
-        currSolSeries.getData().add(new XYChart.Data<>(xValue, yValue));
+      for (String value : values) {
+        if (i++ > 4) {
+          int indexValue = Integer.valueOf(value);
+          tourItSeries.getData().add(new XYChart.Data<>(xCoords.get(indexValue - 1), yCoords.get(indexValue - 1)));
 
-        for (String value : values) {
-          if (i++ > 6) {
-            int indexValue = Integer.valueOf(value);
-            tourItSeries.getData().add(new XYChart.Data<>(xCoords.get(indexValue - 1), yCoords.get(indexValue - 1)));
-
-            if (i == values.size()) {
-              int firstPoint = Integer.valueOf(values.get(7));
-              tourItSeries.getData().add(new XYChart.Data<>(xCoords.get(firstPoint - 1), yCoords.get(firstPoint - 1)));
-            }
+          if (i == values.size()) {
+            int firstPoint = Integer.valueOf(values.get(5));
+            tourItSeries.getData().add(new XYChart.Data<>(xCoords.get(firstPoint - 1), yCoords.get(firstPoint - 1)));
           }
         }
-      } else {
-        if (i == 0)
-          tourItSeries = new XYChart.Series<>();
-        int indexValue = Integer.valueOf(solutionLines.get(i++));
-        tourItSeries.getData().add(new XYChart.Data<>(xCoords.get(indexValue - 1), yCoords.get(indexValue - 1)));
       }
 
       lineChart.getData().add(tourItSeries);
